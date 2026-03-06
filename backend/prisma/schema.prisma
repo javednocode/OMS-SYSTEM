@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String
+  name          String
+  role          String   // 'SUPER_ADMIN', 'DISTRIBUTOR', 'SHOPKEEPER'
+  isActive      Boolean  @default(true) // For super admin to enable/disable distributors
+  
+  // Subscription Fields (for Distributors)
+  subscriptionStartDate DateTime?
+  subscriptionEndDate   DateTime?
+  isSubscriptionActive  Boolean  @default(true)
+
+  // Extended Shopkeeper Fields
+  mobileNumber      String?
+  shopName          String?
+  shopAddress       String?
+  city              String?
+  state             String?
+  pincode           String?
+  shopPhotoUrl      String?
+  creditLimit       Float    @default(0)
+  outstandingBalance Float   @default(0)
+
+  // If this user is a shopkeeper, they belong to a distributor
+  distributorId String?
+  distributor   User?    @relation("DistributorShopkeepers", fields: [distributorId], references: [id])
+  shopkeepers   User[]   @relation("DistributorShopkeepers")
+
+  // Categories created by this user (if distributor)
+  categories    Category[] @relation("DistributorCategories")
+
+  // Products managed by this user (if distributor)
+  products      Product[]
+
+  // Orders placed by this user (if shopkeeper)
+  ordersAsShopkeeper Order[] @relation("ShopkeeperOrders")
+  
+  // Orders received by this user (if distributor)
+  ordersAsDistributor Order[] @relation("DistributorOrders")
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Category {
+  id            String   @id @default(uuid())
+  name          String
+  distributorId String
+  distributor   User     @relation("DistributorCategories", fields: [distributorId], references: [id])
+  products      Product[]
+  createdAt     DateTime @default(now())
+}
+
+model Product {
+  id            String   @id @default(uuid())
+  name          String
+  categoryId    String
+  category      Category @relation(fields: [categoryId], references: [id])
+  price         Float
+  stock         Int
+  description   String?
+  imageUrl      String?
+  isNewArrival  Boolean  @default(false)
+  distributorId String
+  distributor   User     @relation(fields: [distributorId], references: [id])
+  orderItems    OrderItem[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Order {
+  id            String   @id @default(uuid())
+  shopkeeperId  String
+  shopkeeper    User     @relation("ShopkeeperOrders", fields: [shopkeeperId], references: [id])
+  distributorId String
+  distributor   User     @relation("DistributorOrders", fields: [distributorId], references: [id])
+  totalAmount   Float
+  status        String   @default("PENDING") // PENDING, PACKED, OUT_FOR_DELIVERY, DELIVERED
+  isPaid        Boolean  @default(false)
+  totalPaid     Float    @default(0)
+  remainingAmount Float  @default(0)
+  paymentStatus String   @default("Unpaid") // Unpaid, Partial, Paid
+  items         OrderItem[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id])
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  quantity    Int
+  price       Float    // price at the time of order
+}

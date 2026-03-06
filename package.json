@@ -1,0 +1,13 @@
+{
+    "name": "oms-system",
+    "version": "1.0.0",
+    "description": "Multi Distributor Order Management System",
+    "scripts": {
+        "dev:frontend": "cd frontend && npm run dev",
+        "dev:backend": "cd backend && npx ts-node-dev src/server.ts",
+        "dev": "npx concurrently \"npm run dev:frontend\" \"npm run dev:backend\""
+    },
+    "dependencies": {
+        "concurrently": "^8.2.2"
+    }
+}
